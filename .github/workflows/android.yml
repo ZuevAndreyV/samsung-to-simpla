@@ -19,11 +19,15 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
+    # Робот сам генерирует официальную обертку нужной версии
+    - name: Generate Gradle Wrapper
+      run: gradle wrapper --gradle-version 8.2
+
     - name: Build APK
-      run: bash -c "mkdir -p app/src/main && echo '<manifest package=\"com.example.sync\"/>' > app/src/main/AndroidManifest.xml && gradlectl assembleDebug || ./gradlew assembleDebug"
+      run: ./gradlew assembleDebug
 
     - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/artifact@v4
       with:
         name: simpla-sync-app
-        path: "**/build/outputs/apk/debug/*.apk"
+        path: "app/build/outputs/apk/debug/*.apk"
