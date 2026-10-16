@@ -6,7 +6,7 @@ pluginManagement {
     }
 }
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PRESERVE_EXISTING_REPOS)
+    repositoriesMode.set(RepositoriesMode.PRESERVE_EXISTING_REPOSITORIES) // Исправлено здесь
     repositories {
         google()
         mavenCentral()
