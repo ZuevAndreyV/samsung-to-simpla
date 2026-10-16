@@ -1,6 +1,6 @@
 plugins {
-    id("com.android.application") version "8.2.2"
-    id("org.jetbrains.kotlin.android") version "1.9.22"
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
@@ -13,11 +13,6 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
-        }
     }
 
     buildTypes {
@@ -36,29 +31,18 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-    buildFeatures {
-        compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
-    }
 }
 
 dependencies {
+    // Базовые системные библиотеки Android
     implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-    implementation("androidx.activity:activity-compose:1.8.2")
-    implementation(platform("androidx.compose:compose-bom:2023.08.0"))
-    implementation("androidx.compose.ui:compose-ui")
-    implementation("androidx.compose.ui:compose-ui-graphics")
-    implementation("androidx.compose.material3:material3")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.11.0")
 
-    // Стабильная версия WorkManager
+    // Фоны и Сбор данных (WorkManager и Health Connect)
     implementation("androidx.work:work-runtime-ktx:2.9.0")
-
-    // Согласованная версия Google Health Connect
     implementation("androidx.health.connect:connect-client:1.1.0-alpha06")
     
-    // Вспомогательные библиотеки
+    // Сеть
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
