@@ -19,7 +19,6 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
-    # Робот сам генерирует официальную обертку нужной версии
     - name: Generate Gradle Wrapper
       run: gradle wrapper --gradle-version 8.2
 
@@ -27,7 +26,7 @@ jobs:
       run: ./gradlew assembleDebug
 
     - name: Upload APK Artifact
-      uses: actions/artifact@v4
+      uses: actions/upload-artifact@v4
       with:
         name: simpla-sync-app
-        path: "app/build/outputs/apk/debug/*.apk"
+        path: "**/build/outputs/apk/debug/*.apk"
