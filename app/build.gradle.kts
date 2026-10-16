@@ -62,4 +62,8 @@ dependencies {
     
     // Библиотека для отправки интернет-запросов (понадобится для Simpla)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Принудительное согласование версий для устранения конфликта Health Connect и WorkManager
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
 }
