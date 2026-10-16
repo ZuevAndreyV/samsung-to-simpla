@@ -1,36 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://android.com"
-    xmlns:tools="http://android.com">
+<manifest xmlns:android="http://android.com">
 
-    <!-- Запрашиваем права на чтение тренировок и пульса из Samsung Health / Health Connect -->
+    <!-- Права доступа для Health Connect и интернета -->
     <uses-permission android:name="android.permission.health.READ_EXERCISE" />
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
-    <!-- Разрешение на работу интернета для отправки данных в Simpla -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
         android:label="Samsung To Simpla"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.NoTitleBar">
+        android:theme="@style/Theme.AppCompat.NoActionBar">
         
         <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:theme="@android:style/Theme.Material.NoTitleBar">
+            android:name="com.example.sync.MainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- Регистрируем провайдер данных для Health Connect -->
+        <!-- Обязательный системный провайдер для Health Connect -->
         <activity-alias
-            android:name="ViewPermissionUsageActivity"
+            android:name="com.example.sync.ViewPermissionUsageActivity"
             android:exported="true"
-            android:targetActivity=".MainActivity">
+            android:targetActivity="com.example.sync.MainActivity">
             <intent-filter>
                 <action android:name="androidx.health.connect.client.ACTION_VIEW_PERMISSION_USAGE" />
                 <category android:name="android.intent.category.DEFAULT" />
