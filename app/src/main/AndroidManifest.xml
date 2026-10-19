@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://android.com">
 
+    <!-- Права доступа для Health Connect и интернета -->
     <uses-permission android:name="android.permission.health.READ_EXERCISE" />
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -20,6 +21,7 @@
             </intent-filter>
         </activity>
 
+        <!-- Обязательный системный провайдер для Health Connect -->
         <activity-alias
             android:name="com.example.sync.ViewPermissionUsageActivity"
             android:exported="true"
