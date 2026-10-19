@@ -1,6 +1,6 @@
 plugins {
-    id("com.android.application") version "8.2.2"
-    id("org.jetbrains.kotlin.android") version "1.9.22"
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
@@ -9,10 +9,12 @@ android {
 
     defaultConfig {
         applicationId = "com.example.sync"
-        minSdk = 26
+        minSdk = 26 // Поддержка Android 8.0 и выше
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -34,19 +36,20 @@ android {
 }
 
 dependencies {
-    // Базовые системные библиотеки Android
+    // Базовые библиотеки AndroidX
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
-
-    // Фоны и Сбор данных (WorkManager и Health Connect)
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
-    implementation("androidx.health.connect:connect-client:1.1.0-alpha06")
     
-    // Сеть
+    // Жизненный цикл (lifecycleScope для MainActivity)
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+
+    // Фоновый робот WorkManager (SyncDataWorker)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // Системный клиент Health Connect от Google (GPS, пульс, сессии)
+    implementation("androidx.health.connect:health-connect-client:1.1.0-alpha07")
+
+    // Сетевой клиент OkHttp3 для отправки JSON на бэкенд Simple Run
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
-    // Авторизация
-   implementation("androidx.security:security-crypto:1.1.0-alpha06")
-
 }
