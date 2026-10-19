@@ -1,34 +1,197 @@
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+package com.example.sync
 
-    <uses-permission android:name="android.permission.health.READ_EXERCISE" />
-    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
-    <uses-permission android:name="android.permission.INTERNET" />
+import android.content.Context
+import android.os.Bundle
+import android.widget.Button
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import androidx.work.*
+import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.records.ExerciseSessionRecord
+import androidx.health.connect.client.records.HeartRateRecord
+import androidx.health.connect.client.records.StepsCadenceRecord
+import androidx.health.connect.client.request.ReadRecordsRequest
+import androidx.health.connect.client.time.TimeRangeFilter
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
+import java.time.LocalTime
+import java.time.ZonedDateTime
+import java.util.concurrent.TimeUnit
 
-    <application
-        android:allowBackup="true"
-        android:label="Samsung To Simpla"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.NoActionBar">
+// ==========================================
+// 1. ГЛАВНЫЙ ЭКРАН ПРИЛОЖЕНИЯ
+// ==========================================
+class MainActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            gravity = android.view.Gravity.CENTER
+            setPadding(50, 50, 50, 50)
+        }
+
+        val titleView = TextView(this).apply {
+            text = "Samsung ➔ Simple Run"
+            textSize = 24f
+            gravity = android.view.Gravity.CENTER
+            setPadding(0, 0, 0, 100)
+        }
+
+        val statusView = TextView(this).apply {
+            text = "Статус: Приложение готово"
+            textSize = 16f
+            gravity = android.view.Gravity.CENTER
+            setPadding(0, 0, 0, 50)
+        }
+
+        val syncButton = Button(this).apply {
+            text = "Включить автосинхронизацию"
+            setOnClickListener {
+                scheduleFlexibleSync(true)
+                statusView.text = "Статус: Фоновый режим АКТИВИРОВАН"
+            }
+        }
+
+        layout.addView(titleView)
+        layout.addView(statusView)
+        layout.addView(syncButton)
+        setContentView(layout)
+    }
+
+    private fun scheduleFlexibleSync(enable: Boolean) {
+        val workManager = WorkManager.getInstance(this)
+        val uniqueWorkName = "SimpleRunBackgroundSync"
+
+        if (enable) {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .setRequiresBatteryNotLow(true)
+                .build()
+
+            val syncRequest = PeriodicWorkRequest.Builder(
+                SyncDataWorker::class.java, 
+                30, 
+                TimeUnit.MINUTES
+            )
+            .setConstraints(constraints)
+            .build()
+
+            workManager.enqueueUniquePeriodicWork(
+                uniqueWorkName,
+                ExistingPeriodicWorkPolicy.KEEP,
+                syncRequest
+            )
+        } else {
+            workManager.cancelUniqueWork(uniqueWorkName)
+        }
+    }
+}
+
+// ==========================================
+// 2. ФОНОВЫЙ РОБОТ СИНХРОНИЗАЦИИ
+// ==========================================
+class SyncDataWorker(
+    appContext: Context,
+    workerParams: WorkerParameters
+) : CoroutineWorker(appContext, workerParams) {
+
+    // ВСТАВЬТЕ СЮДА ВАШ СКОПИРОВАННЫЙ ТОКЕН ИЗ БЛОКНОТА ВНУТРЬ КАВЫЧЕК:
+    private val apiToken = "m15q3E6hpE86uN2qjDBjjMGsROMkRSknxzNLl9DAKJuh10v0pZKNfacQkUfvGQ0q"
+
+    override suspend fun doWork(): Result {
+        val healthConnectClient = HealthConnectClient.getOrCreate(applicationContext)
+
+        val now = ZonedDateTime.now()
+        val yesterdayStart = now.minusDays(1).with(LocalTime.MIN)
+        val timeFilter = TimeRangeFilter.between(yesterdayStart.toInstant(), now.toInstant())
+
+        try {
+            val exerciseResponse = healthConnectClient.readRecords(
+                ReadRecordsRequest(
+                    recordType = ExerciseSessionRecord::class,
+                    timeRangeFilter = timeFilter
+                )
+            )
+
+            if (exerciseResponse.records.isEmpty()) {
+                return Result.success()
+            }
+
+            for (workout in exerciseResponse.records) {
+                val workoutTimeFilter = TimeRangeFilter.between(workout.startTime, workout.endTime)
+
+                val heartRateResponse = healthConnectClient.readRecords(
+                    ReadRecordsRequest(
+                        recordType = HeartRateRecord::class,
+                        timeRangeFilter = workoutTimeFilter
+                    )
+                )
+
+                val cadenceResponse = healthConnectClient.readRecords(
+                    ReadRecordsRequest(
+                        recordType = StepsCadenceRecord::class,
+                        timeRangeFilter = workoutTimeFilter
+                    )
+                )
+
+                // Запускаем отправку собранной тренировки в интернет
+                sendDataToSimpleRun(workout, heartRateResponse.records, cadenceResponse.records)
+            }
+
+            return Result.success()
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return Result.retry()
+        }
+    }
+
+    private fun sendDataToSimpleRun(
+        workout: ExerciseSessionRecord,
+        heartRates: List<HeartRateRecord>,
+        cadences: List<StepsCadenceRecord>
+    ) {
+        val totalHeartPoints = heartRates.sumOf { it.samples.size }
         
-        <activity
-            android:name="com.example.sync.MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+        // 1. Формируем пакет данных JSON для отправки
+        val jsonPayload = """
+            {
+                "title": "${workout.title ?: "Утренняя тренировка"}",
+                "start_time": "${workout.startTime}",
+                "end_time": "${workout.endTime}",
+                "heart_rate_points": $totalHeartPoints,
+                "notes": "${workout.notes ?: ""}"
+            }
+        """.trimIndent()
 
-        <activity-alias
-            android:name="com.example.sync.ViewPermissionUsageActivity"
-            android:exported="true"
-            android:targetActivity="com.example.sync.MainActivity">
-            <intent-filter>
-                <action android:name="androidx.health.connect.client.ACTION_VIEW_PERMISSION_USAGE" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity-alias>
+        // 2. Открываем сетевое соединение с беговым сервером
+        var connection: HttpURLConnection? = null
+        try {
+            val url = URL("https://simplerun.ru") // Базовый проверочный адрес
+            connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            
+            // Передаем заголовки: тип данных JSON и наш секретный токен для авторизации профиля
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Authorization", "Bearer $apiToken")
 
-    </application>
-</manifest>
+            // Записываем данные в поток отправки
+            OutputStreamWriter(connection.outputStream).use { writer ->
+                writer.write(jsonPayload)
+                writer.flush()
+            }
+
+            val responseCode = connection.responseCode
+            println("Сервер ответил кодом: $responseCode")
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            connection?.disconnect()
+        }
+    }
+}
