@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://android.com">
 
-    <!-- Разрешение на интернет -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -10,7 +9,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         
-        <!-- Главный экран приложения -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -20,14 +18,12 @@
             </intent-filter>
         </activity>
 
-        <!-- Метаданные для Health Connect -->
         <meta-data
             android:name="health_permissions"
             android:resource="@array/health_permissions" />
 
     </application>
 
-    <!-- Видимость пакета Health Connect -->
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
     </queries>
