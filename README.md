@@ -1,1 +1,0 @@
-# samsung-to-simpla
