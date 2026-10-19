@@ -12,7 +12,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Создаем интерфейс приложения программно
         val layout = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             gravity = android.view.Gravity.CENTER
@@ -57,10 +56,14 @@ class MainActivity : AppCompatActivity() {
                 .setRequiresBatteryNotLow(true)
                 .build()
 
-            // Передаем интервал строго как Long (30L), чтобы у Gradle не было вопросов к типам данных
-            val syncRequest = PeriodicWorkRequestBuilder<SyncDataWorker>(30L, TimeUnit.MINUTES)
-                .setConstraints(constraints)
-                .build()
+            // Альтернативный и самый надежный способ создания фоновой задачи для Gradle
+            val syncRequest = PeriodicWorkRequest.Builder(
+                SyncDataWorker::class.java, 
+                30, 
+                TimeUnit.MINUTES
+            )
+            .setConstraints(constraints)
+            .build()
 
             workManager.enqueueUniquePeriodicWork(
                 uniqueWorkName,
