@@ -15,6 +15,13 @@ android {
         versionName = "1.0"
     }
 
+    // ЖЕСТКОЕ ПЕРЕОПРЕДЕЛЕНИЕ ПУТЕЙ ДЛЯ СБОРЩИКА
+    sourceSets {
+        getByName("main") {
+            manifest.srcFile("src/main/AndroidManifest.xml")
+        }
+    }
+
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
@@ -38,9 +45,9 @@ dependencies {
     // Фоновые задачи WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     
-    // Health Connect
+    // Здоровье и GPS (Ветка 1.1.0-alpha)
     implementation("androidx.health.connect:connect-client:1.1.0-alpha01")
     
-    // Сеть
+    // Сетевой клиент OkHttp
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
