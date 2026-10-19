@@ -190,22 +190,16 @@ class SyncDataWorker(context: Context, workerParams: WorkerParameters) : Corouti
         val authService = AuthService(applicationContext)
         val apiToken = authService.getSavedToken()
 
+        // Если пользователь еще не вошел в аккаунт, откладываем задачу
         if (apiToken.isNullOrEmpty()) return Result.success()
 
-        var realDistance = 5000.0
-        var realDuration = 4020
-        var startTimeStr = "2026-10-19 12:00:00"
-        var finishTimeStr = "2026-10-19 13:07:00"
-        
-        val heartRatePointsArray = JSONArray()
-        val cadencePointsArray = JSONArray()
-
         try {
-            // Чтение данных из базы Google Health Connect за последние 2 дня
+            // Подключаемся к базе данных Google Health Connect
             val healthConnectClient = HealthConnectClient.getOrCreate(applicationContext)
             val endTime = Instant.now()
-            val startTime = endTime.minus(2, ChronoUnit.DAYS)
+            val startTime = endTime.minus(2, ChronoUnit.DAYS) // Ищем тренировки за последние 2 дня
 
+            // Запрашиваем список спортивных сессий
             val response = healthConnectClient.readRecords(
                 ReadRecordsRequest(
                     recordType = ExerciseSessionRecord::class,
@@ -213,79 +207,83 @@ class SyncDataWorker(context: Context, workerParams: WorkerParameters) : Corouti
                 )
             )
 
-            if (response.records.isNotEmpty()) {
-                val lastSession = response.records.last()
-                realDistance = lastSession.distance?.inMeters ?: 5000.0
-                realDuration = ChronoUnit.SECONDS.between(lastSession.startTime, lastSession.endTime).toInt()
-                
-                startTimeStr = lastSession.startTime.toString().replace("T", " ").substring(0, 19)
-                finishTimeStr = lastSession.endTime.toString().replace("T", " ").substring(0, 19)
+            // ЕСЛИ НАСТОЯЩИХ ТРЕНИРОВОК НЕТ — ПРЕКРАЩАЕМ РАБОТУ (Никакого хардкода!)
+            if (response.records.isEmpty()) {
+                return Result.success()
+            }
 
-                // Запрашиваем пульс за время проведения тренировки
-                val heartRateResponse = healthConnectClient.readRecords(
-                    ReadRecordsRequest(
-                        recordType = HeartRateRecord::class,
-                        timeRangeFilter = TimeRangeFilter.between(lastSession.startTime, lastSession.endTime)
-                    )
+            // Берем самую последнюю реальную тренировку из базы Google Health
+            val lastSession = response.records.last()
+            
+            // Вытаскиваем реальные показатели из этой сессии
+            val realDistance = lastSession.distance?.inMeters ?: 0.0
+            val realDurationSeconds = ChronoUnit.SECONDS.between(lastSession.startTime, lastSession.endTime).toInt()
+            
+            // Переводим время старта и финиша в понятный серверу текстовый формат
+            val startTimeStr = lastSession.startTime.toString().replace("T", " ").substring(0, 19)
+            val finishTimeStr = lastSession.endTime.toString().replace("T", " ").substring(0, 19)
+
+            // Считаем красивую текстовую строку длительности (например, "1:07:00")
+            val hours = realDurationSeconds / 3600
+            val minutes = (realDurationSeconds % 3600) / 60
+            val seconds = realDurationSeconds % 60
+            val formattedTrainingTime = String.format("%d:%02d:%02d", hours, minutes, seconds)
+
+            // Запрашиваем реальные точки пульса строго за время проведения этой тренировки
+            val heartRatePointsArray = JSONArray()
+            val heartRateResponse = healthConnectClient.readRecords(
+                ReadRecordsRequest(
+                    recordType = HeartRateRecord::class,
+                    timeRangeFilter = TimeRangeFilter.between(lastSession.startTime, lastSession.endTime)
                 )
+            )
 
-                heartRateResponse.records.forEach { record ->
-                    record.samples.forEach { sample ->
-                        val offset = ChronoUnit.SECONDS.between(lastSession.startTime, sample.time).toInt()
-                        val heartPoint = JSONObject().apply {
-                            put("time_offset", offset)
-                            put("value", sample.beatsPerMinute)
-                        }
-                        heartRatePointsArray.put(heartPoint)
+            // Заполняем массив настоящими точками пульса
+            heartRateResponse.records.forEach { record ->
+                record.samples.forEach { sample ->
+                    val offset = ChronoUnit.SECONDS.between(lastSession.startTime, sample.time).toInt()
+                    val heartPoint = JSONObject().apply {
+                        put("time_offset", offset)
+                        put("value", sample.beatsPerMinute) // Реальный пульс с датчика
                     }
+                    heartRatePointsArray.put(heartPoint)
                 }
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            // Заглушка на случай ограничений LDPlayer эмулятора
-            val testHeartPoint = JSONObject().apply {
-                put("time_offset", 10)
-                put("value", 135)
-            }
-            heartRatePointsArray.put(testHeartPoint)
-        }
 
-        if (heartRatePointsArray.length() == 0) {
-            heartRatePointsArray.put(JSONObject().apply { put("time_offset", 10); put("value", 140) })
-        }
-        if (cadencePointsArray.length() == 0) {
-            cadencePointsArray.put(JSONObject().apply { put("time_offset", 10); put("value", 170) })
-        }
+            // Массив каденса (оставляем пустым, если датчик часов его не записал)
+            val cadencePointsArray = JSONArray()
 
-        try {
+            // СБОРКА ДИНАМИЧЕСКОГО JSON-ПАКЕТА
             val typeObject = JSONObject().apply {
-                put("code", "walking")
+                put("code", "walking") // Базовый код ходьбы (можно менять на "running" при проверке типа)
                 put("location", "outdoor")
                 put("name", "Ходьба")
             }
 
             val trainingObject = JSONObject().apply {
-                put("description", "Автоматический импорт из Health Connect")
-                put("distance", realDistance)
-                put("duration", realDuration)
+                put("description", "Автоматический импорт из Google Health Connect")
+                put("distance", realDistance)           // Реальная дистанция из Samsung/Google
+                put("duration", realDurationSeconds)     // Реальное время в секундах
                 put("in_statistics", true)
                 put("isChecked", false)
                 put("isCollapsed", true)
                 put("is_public", true)
                 put("is_track_hidden", false)
-                put("is_manual", false)
-                put("started_at", startTimeStr)
-                put("finished_at", finishTimeStr)
-                put("timestamp", System.currentTimeMillis() / 1000)
-                put("title", "Импортированная ходьба")
-                put("training_time", "1:07:00")
+                put("is_manual", false)                 // Указываем false — данные получены автоматически
+                put("started_at", startTimeStr)         // Настоящее время старта
+                put("finished_at", finishTimeStr)       // Настоящее время финиша
+                put("timestamp", lastSession.startTime.epochSecond)
+                put("title", "Импортированная тренировка")
+                put("training_time", formattedTrainingTime) // Настоящая длительность строкой
                 put("type", typeObject)
                 
-                put("heart_rate_series", heartRatePointsArray)
+                put("heart_rate_series", heartRatePointsArray) // Настоящий график пульса
                 put("cadence_series", cadencePointsArray)
             }
 
             val rootJson = JSONObject().apply { put("training", trainingObject) }.toString()
+            
+            // Направление данных на сервер Simple Run
             val url = "https://simplerun.ru"
             val body = rootJson.toRequestBody("application/json; charset=utf-8".toMediaType())
             
@@ -299,9 +297,11 @@ class SyncDataWorker(context: Context, workerParams: WorkerParameters) : Corouti
             client.newCall(request).execute().use { response ->
                 return if (response.isSuccessful) Result.success() else Result.retry()
             }
+
         } catch (e: Exception) {
             e.printStackTrace()
-            return Result.retry()
+            return Result.retry() // В случае сбоя сети WorkManager попробует еще раз позже
         }
     }
 }
+
