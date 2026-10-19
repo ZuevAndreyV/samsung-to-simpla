@@ -39,7 +39,7 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     
     // Health Connect
-    implementation("androidx.health.connect:health-connect-client:1.1.0-alpha06")
+    implementation("androidx.health.connect:health-connect-client:1.0.0-alpha11")
     
     // Сеть
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
