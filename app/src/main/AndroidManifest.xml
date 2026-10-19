@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://android.com">
+<manifest xmlns:android="http://SCHEMAS.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.health.READ_EXERCISE" />
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
@@ -32,4 +32,3 @@
 
     </application>
 </manifest>
-
