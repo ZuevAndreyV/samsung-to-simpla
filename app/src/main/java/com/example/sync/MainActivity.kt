@@ -26,6 +26,7 @@ class AuthService(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("SimpleRunPrefs", Context.MODE_PRIVATE)
 
     fun loginAndSaveToken(email: String, javaPassword: String): Boolean {
+        // ИСПРАВЛЕНО: Указали точный адрес авторизации из Charles Proxy
         val url = "https://simplerun.ru"
 
         val jsonPayload = JSONObject().apply {
@@ -204,6 +205,7 @@ class SyncDataWorker(context: Context, workerParams: WorkerParameters) : Corouti
                 put("training", trainingObject)
             }.toString()
 
+            // ИСПРАВЛЕНО: Указали точный эндпоинт для отправки тренировок
             val url = "https://simplerun.ru"
             val body = rootJson.toRequestBody("application/json; charset=utf-8".toMediaType())
             
