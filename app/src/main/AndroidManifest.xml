@@ -99,7 +99,8 @@ class SyncDataWorker(
 ) : CoroutineWorker(appContext, workerParams) {
 
     // ВСТАВЬТЕ СЮДА ВАШ СКОПИРОВАННЫЙ ТОКЕН ИЗ БЛОКНОТА ВНУТРЬ КАВЫЧЕК:
-    private val apiToken = "m15q3E6hpE86uN2qjDBjjMGsROMkRSknxzNLl9DAKJuh10v0pZKNfacQkUfvGQ0q"
+ private val apiToken = AuthService(applicationContext).getSavedToken()
+
 
     override suspend fun doWork(): Result {
         val healthConnectClient = HealthConnectClient.getOrCreate(applicationContext)
