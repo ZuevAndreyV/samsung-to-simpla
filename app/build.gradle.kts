@@ -45,4 +45,8 @@ dependencies {
     
     // Сеть
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Авторизация
+   implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
 }
