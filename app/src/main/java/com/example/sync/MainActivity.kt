@@ -5,7 +5,6 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.work.*
-import com.example.sync.SyncDataWorker
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
@@ -13,7 +12,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Создаем интерфейс программно без XML-файлов, чтобы робот не запутался
+        // Создаем интерфейс приложения программно
         val layout = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             gravity = android.view.Gravity.CENTER
@@ -21,7 +20,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val titleView = TextView(this).apply {
-            text = "Samsung ➔ Simpla"
+            text = "Samsung ➔ Simple Run"
             textSize = 24f
             gravity = android.view.Gravity.CENTER
             setPadding(0, 0, 0, 100)
@@ -35,7 +34,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val syncButton = Button(this).apply {
-            text = "Включить автосинхронизацию (15 мин)"
+            text = "Включить автосинхронизацию"
             setOnClickListener {
                 scheduleFlexibleSync(true)
                 statusView.text = "Статус: Фоновый режим АКТИВИРОВАН"
@@ -50,7 +49,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun scheduleFlexibleSync(enable: Boolean) {
         val workManager = WorkManager.getInstance(this)
-        val uniqueWorkName = "SimplaBackgroundSync"
+        val uniqueWorkName = "SimpleRunBackgroundSync"
 
         if (enable) {
             val constraints = Constraints.Builder()
@@ -58,7 +57,8 @@ class MainActivity : AppCompatActivity() {
                 .setRequiresBatteryNotLow(true)
                 .build()
 
-            val syncRequest = PeriodicWorkRequestBuilder<SyncDataWorker>(15, TimeUnit.MINUTES)
+            // Передаем интервал строго как Long (30L), чтобы у Gradle не было вопросов к типам данных
+            val syncRequest = PeriodicWorkRequestBuilder<SyncDataWorker>(30L, TimeUnit.MINUTES)
                 .setConstraints(constraints)
                 .build()
 
