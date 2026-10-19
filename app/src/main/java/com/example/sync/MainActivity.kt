@@ -56,7 +56,6 @@ class MainActivity : AppCompatActivity() {
                 .setRequiresBatteryNotLow(true)
                 .build()
 
-            // Альтернативный и самый надежный способ создания фоновой задачи для Gradle
             val syncRequest = PeriodicWorkRequest.Builder(
                 SyncDataWorker::class.java, 
                 30, 
